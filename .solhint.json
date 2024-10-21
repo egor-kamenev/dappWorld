@@ -1,0 +1,14 @@
+{
+    "extends": "solhint:recommended",
+    "plugins": [],
+    "rules": {
+        "avoid-suicide": "error",
+        "avoid-sha3": "error",
+        "constructor-syntax": "error",
+        "func-param-name-mixedcase": "error",
+        "modifier-name-mixedcase": "error",
+        "named-parameters-mapping": "error",
+        "func-order": "error",
+        "ordering": "error"
+    }
+}
