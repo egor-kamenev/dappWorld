@@ -9,7 +9,8 @@
         "resolveJsonModule": true,
         "baseUrl": "./",
         "paths": {
-            "@/test/*": ["./test/*"]
+            "@/test/*": ["./test/*"],
+            "@/contracts/*": ["./contracts/*"]
         }
     }
 }

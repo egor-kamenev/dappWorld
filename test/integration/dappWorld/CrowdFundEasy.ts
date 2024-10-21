@@ -2,7 +2,7 @@ import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-describe("DAppWorld", async function () {
+describe("DAppWorld testcases", async function () {
     describe("TestCase 3", async function () {
         it("Should pass testcase", async function () {
             const [owner, address1, address2] = await ethers.getSigners();
