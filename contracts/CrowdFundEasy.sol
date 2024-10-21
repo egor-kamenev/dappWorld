@@ -232,6 +232,12 @@ contract CrowdFundEasy {
         require(i_token.transfer(msg.sender, contributionAmount));
     }
 
+
+    /**
+     * @dev getTokenAmountInUsd returns the USD value of a given amount of tokens
+     * @param _amount the amount of tokens
+     * @return the USD value of the amount of tokens
+     */
     function getTokenAmountInUsd(uint256 _amount) private view returns (uint256) {
         uint256 rate = i_token.getTokenPriceInUSD();
         return (rate * _amount) / 1e18;
@@ -271,10 +277,19 @@ contract CrowdFundEasy {
         totalFunds = getTokenAmountInUsd(campaign.contributionsAmount);
     }
 
+    
+    /**
+     * @notice getToken returns the address of the ERC20 token
+     * @return address of the ERC20 token
+     */
     function getToken() external view returns (address) {
         return address(i_token);
     }
 
+    /**
+     * @notice getCampaigns returns an array of all campaigns
+     * @return list of all campaigns
+     */
     function getCampaigns() external view returns (Campaign[] memory) {
         return s_campaigns;
     }

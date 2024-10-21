@@ -688,5 +688,3 @@ describe("CrowdFundEasy", async function () {
         });
     });
 });
-
-//remove address
