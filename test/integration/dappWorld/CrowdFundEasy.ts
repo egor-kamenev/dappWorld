@@ -1,39 +1,52 @@
-import { time } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+
+async function crowdFundEasyFixture() {
+    const [owner, address1, address2] = await ethers.getSigners();
+
+    const token1ContractFactory = await ethers.getContractFactory("MyToken");
+    const token1Contract = await token1ContractFactory
+        .connect(owner)
+        .deploy("Token1", "T1", ethers.parseEther("5"));
+
+    const CrowdFundEasyContractFactory = await ethers.getContractFactory("CrowdFundEasy");
+    const crowdFundEasyContract = await CrowdFundEasyContractFactory.connect(owner).deploy(
+        await token1Contract.getAddress(),
+    );
+
+    await expect(token1Contract.connect(owner).mint(address1, ethers.parseEther("100000"))).not
+        .reverted;
+
+    await expect(token1Contract.connect(owner).mint(address2, ethers.parseEther("100000"))).not
+        .reverted;
+
+    await expect(
+        token1Contract
+            .connect(address1)
+            .approve(await crowdFundEasyContract.getAddress(), ethers.parseEther("100000")),
+    ).not.reverted;
+
+    await expect(
+        token1Contract
+            .connect(address2)
+            .approve(await crowdFundEasyContract.getAddress(), ethers.parseEther("100000")),
+    ).not.reverted;
+
+    return {
+        address1,
+        address2,
+        crowdFundEasyContract,
+        owner,
+        token1Contract,
+    };
+}
 
 describe("DAppWorld testcases", async function () {
     describe("TestCase 3", async function () {
         it("Should pass testcase", async function () {
-            const [owner, address1, address2] = await ethers.getSigners();
-
-            const token1ContractFactory = await ethers.getContractFactory("MyToken");
-            const token1Contract = await token1ContractFactory
-                .connect(owner)
-                .deploy("Token1", "T1", ethers.parseEther("5"));
-
-            const CrowdFundEasyContractFactory = await ethers.getContractFactory("CrowdFundEasy");
-            const crowdFundEasyContract = await CrowdFundEasyContractFactory.connect(owner).deploy(
-                await token1Contract.getAddress(),
-            );
-
-            await expect(token1Contract.connect(owner).mint(address1, ethers.parseEther("100000")))
-                .not.reverted;
-
-            await expect(token1Contract.connect(owner).mint(address2, ethers.parseEther("100000")))
-                .not.reverted;
-
-            await expect(
-                token1Contract
-                    .connect(address1)
-                    .approve(await crowdFundEasyContract.getAddress(), ethers.parseEther("100000")),
-            ).not.reverted;
-
-            await expect(
-                token1Contract
-                    .connect(address2)
-                    .approve(await crowdFundEasyContract.getAddress(), ethers.parseEther("100000")),
-            ).not.reverted;
+            const { address1, address2, crowdFundEasyContract } =
+                await loadFixture(crowdFundEasyFixture);
 
             await expect(
                 crowdFundEasyContract
@@ -99,35 +112,8 @@ describe("DAppWorld testcases", async function () {
 
     describe("TestCase 4", async function () {
         it("Should pass testcase", async function () {
-            const [owner, address1, address2] = await ethers.getSigners();
-
-            const token1ContractFactory = await ethers.getContractFactory("MyToken");
-            const token1Contract = await token1ContractFactory
-                .connect(owner)
-                .deploy("Token1", "T1", ethers.parseEther("5"));
-
-            const CrowdFundEasyContractFactory = await ethers.getContractFactory("CrowdFundEasy");
-            const crowdFundEasyContract = await CrowdFundEasyContractFactory.connect(owner).deploy(
-                await token1Contract.getAddress(),
-            );
-
-            await expect(token1Contract.connect(owner).mint(address1, ethers.parseEther("100000")))
-                .not.reverted;
-
-            await expect(token1Contract.connect(owner).mint(address2, ethers.parseEther("100000")))
-                .not.reverted;
-
-            await expect(
-                token1Contract
-                    .connect(address1)
-                    .approve(await crowdFundEasyContract.getAddress(), ethers.parseEther("100000")),
-            ).not.reverted;
-
-            await expect(
-                token1Contract
-                    .connect(address2)
-                    .approve(await crowdFundEasyContract.getAddress(), ethers.parseEther("100000")),
-            ).not.reverted;
+            const { address1, address2, crowdFundEasyContract, token1Contract } =
+                await loadFixture(crowdFundEasyFixture);
 
             await expect(
                 crowdFundEasyContract
