@@ -53,9 +53,9 @@ describe("DAppWorld testcases", async function () {
                     .connect(address1)
                     .createCampaign(ethers.parseEther("1000"), 10_000),
             ).not.reverted;
-            const compaign1Timestamp = await time.latest();
+            const campaign1Timestamp = await time.latest();
 
-            await time.increaseTo(compaign1Timestamp + 2000);
+            await time.increaseTo(campaign1Timestamp + 2000);
             expect(await crowdFundEasyContract.connect(address1).getCampaign(1)).deep.equal([
                 8000,
                 ethers.parseEther("1000"),
@@ -68,7 +68,7 @@ describe("DAppWorld testcases", async function () {
                     .createCampaign(ethers.parseEther("5"), 2000),
             ).not.reverted;
 
-            await time.increaseTo(compaign1Timestamp + 3000);
+            await time.increaseTo(campaign1Timestamp + 3000);
             expect(await crowdFundEasyContract.connect(address1).getCampaign(1)).deep.equal([
                 7000,
                 ethers.parseEther("1000"),
@@ -99,7 +99,7 @@ describe("DAppWorld testcases", async function () {
                 crowdFundEasyContract.connect(address2).contribute(1, ethers.parseEther("100")),
             ).not.reverted;
 
-            await time.increaseTo(compaign1Timestamp + 5000);
+            await time.increaseTo(campaign1Timestamp + 5000);
             expect(await crowdFundEasyContract.connect(address1).getCampaign(1)).deep.equal([
                 5000,
                 ethers.parseEther("1000"),

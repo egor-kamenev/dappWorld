@@ -83,7 +83,7 @@ describe("CrowdFundEasy", async function () {
             );
         });
 
-        it("Should create compaign id starting from 1", async function () {
+        it("Should create campaign id starting from 1", async function () {
             const { crowdFundEasyContract, campaignCreator } = await loadCrowdFundEasyFixture();
 
             const tx = await crowdFundEasyContract
@@ -665,7 +665,7 @@ describe("CrowdFundEasy", async function () {
         });
     });
 
-    describe("getCompaigns", async function () {
+    describe("getCampaigns", async function () {
         it("Should return campaigns", async function () {
             const { crowdFundEasyContract, campaignCreator } = await loadCrowdFundEasyFixture();
 

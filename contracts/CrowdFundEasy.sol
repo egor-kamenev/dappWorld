@@ -45,18 +45,27 @@ contract CrowdFundEasy {
     error CrowdFundEasy__NotCampaignCreator(address contributor);
     error ERC20InsufficientAllowance(address sender, uint256 currentAllowance, uint256 value);
 
+    /**
+     * @title Campaign struct
+     * @notice Stores the details of a campaign
+     * @dev
+     * @param goal the goal of the campaign in USD
+     * @param timeEnd the time when the campaign ends
+     * @param creator the address of the creator of the campaign
+     * @param contributionsAmount the total amount of tokens contributed to the campaign
+     * @param isWithdrawn whether the campaign creator has withdrawn the funds
+     */
     struct Campaign {
-        uint256 goal; // in USD
+        uint256 goal; 
         uint256 timeEnd;
         address creator;
-        uint256 contributionsAmount; // in Tokens
+        uint256 contributionsAmount;
         bool isWithdrawn;
     }
 
     MyToken immutable i_token;
     Campaign[] s_campaigns;
-    mapping(uint256 campaign => mapping(address contributor => uint256 amount)) s_contributions; // amount in tokens
-
+    mapping(uint256 campaign => mapping(address contributor => uint256 amount)) s_contributions; 
     /**
      * @notice checks that address param is not zero
      * @param _adr ERC20 token address
