@@ -1,6 +1,8 @@
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import hre, { ethers } from "hardhat";
+import { CrowdFundEasy } from "typechain-types";
 
 async function crowdFundEasyFixture() {
     const [owner, tokenOwner, campaignCreator, contributor] = await hre.ethers.getSigners();
@@ -38,6 +40,24 @@ async function loadCrowdFundEasyFixture() {
     return await loadFixture(crowdFundEasyFixture);
 }
 
+async function createCampaign(
+    contract: CrowdFundEasy,
+    creator: HardhatEthersSigner,
+    goal: bigint | number = ethers.parseEther("100"),
+    duration = 100,
+) {
+    return contract.connect(creator).createCampaign(goal, duration);
+}
+
+async function contribute(
+    contract: CrowdFundEasy,
+    contributor: HardhatEthersSigner,
+    campaignId: number = 1,
+    amount: bigint | number = ethers.parseEther("100"),
+) {
+    return contract.connect(contributor).contribute(campaignId, amount);
+}
+
 describe("CrowdFundEasy", async function () {
     describe("constructor", async function () {
         it("Should revert on zero _myToken address", async function () {
@@ -66,7 +86,7 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator } = await loadCrowdFundEasyFixture();
 
             await expect(
-                crowdFundEasyContract.connect(campaignCreator).createCampaign(0, 100),
+                createCampaign(crowdFundEasyContract, campaignCreator, 0),
             ).to.revertedWithCustomError(crowdFundEasyContract, "CrowdFundEasy__ZeroCampaignGoal");
         });
 
@@ -74,9 +94,7 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator } = await loadCrowdFundEasyFixture();
 
             await expect(
-                crowdFundEasyContract
-                    .connect(campaignCreator)
-                    .createCampaign(ethers.parseEther("100"), 0),
+                createCampaign(crowdFundEasyContract, campaignCreator, 100, 0),
             ).to.revertedWithCustomError(
                 crowdFundEasyContract,
                 "CrowdFundEasy__ZeroCampaignDuration",
@@ -86,9 +104,7 @@ describe("CrowdFundEasy", async function () {
         it("Should create campaign id starting from 1", async function () {
             const { crowdFundEasyContract, campaignCreator } = await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
             const timestamp = await time.latest();
@@ -104,7 +120,7 @@ describe("CrowdFundEasy", async function () {
         it("Should revert if _id is 0", async function () {
             const { crowdFundEasyContract, contributor } = await loadCrowdFundEasyFixture();
 
-            await expect(crowdFundEasyContract.connect(contributor).contribute(0, 100))
+            await expect(contribute(crowdFundEasyContract, contributor, 0))
                 .to.revertedWithCustomError(
                     crowdFundEasyContract,
                     "CrowdFundEasy__CampaignDoesNotExists",
@@ -115,7 +131,7 @@ describe("CrowdFundEasy", async function () {
         it("Should revert if campaign does not exist", async function () {
             const { crowdFundEasyContract, contributor } = await loadCrowdFundEasyFixture();
 
-            await expect(crowdFundEasyContract.connect(contributor).contribute(1, 100))
+            await expect(contribute(crowdFundEasyContract, contributor))
                 .to.revertedWithCustomError(
                     crowdFundEasyContract,
                     "CrowdFundEasy__CampaignDoesNotExists",
@@ -127,15 +143,13 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
             const timestamp = await time.latest();
 
             await time.increase(100);
-            await expect(crowdFundEasyContract.connect(contributor).contribute(1, 100))
+            await expect(contribute(crowdFundEasyContract, contributor))
                 .to.revertedWithCustomError(crowdFundEasyContract, "CrowdFundEasy__CampaignEnded")
                 .withArgs(timestamp + 100);
         });
@@ -144,14 +158,12 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
 
             await tx.wait();
 
             await expect(
-                crowdFundEasyContract.connect(contributor).contribute(1, 0),
+                contribute(crowdFundEasyContract, contributor, 1, 0),
             ).to.be.revertedWithCustomError(
                 crowdFundEasyContract,
                 "CrowdFundEasy__ZeroContribution",
@@ -161,13 +173,11 @@ describe("CrowdFundEasy", async function () {
         it("Should revert if contributor is campaign creator", async function () {
             const { crowdFundEasyContract, campaignCreator } = await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
             await expect(
-                crowdFundEasyContract.connect(campaignCreator).contribute(1, 100),
+                contribute(crowdFundEasyContract, campaignCreator),
             ).to.revertedWithCustomError(
                 crowdFundEasyContract,
                 "CrowdFundEasy__TryingToContributeByCreator",
@@ -178,13 +188,11 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor, myTokenContract } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
             await expect(
-                crowdFundEasyContract.connect(contributor).contribute(1, ethers.parseEther("101")),
+                contribute(crowdFundEasyContract, contributor, 1, ethers.parseEther("101")),
             )
                 .to.revertedWithCustomError(myTokenContract, "ERC20InsufficientAllowance")
                 .withArgs(
@@ -198,15 +206,11 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor, myTokenContract } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
             const createCampaignTimestamp = await time.latest();
 
-            await expect(
-                crowdFundEasyContract.connect(contributor).contribute(1, ethers.parseEther("100")),
-            ).changeTokenBalances(
+            await expect(contribute(crowdFundEasyContract, contributor)).changeTokenBalances(
                 myTokenContract,
                 [crowdFundEasyContract, contributor],
                 [ethers.parseEther("100"), ethers.parseEther("-100")],
@@ -241,15 +245,11 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
             const createCampaignTimestamp = await time.latest();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("100"));
+            const tx2 = await contribute(crowdFundEasyContract, contributor);
             await tx2.wait();
 
             await time.increase(100);
@@ -262,9 +262,7 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
             await expect(
@@ -276,15 +274,11 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor, myTokenContract } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
             const createCampaignTimestamp = await time.latest();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("100"));
+            const tx2 = await contribute(crowdFundEasyContract, contributor);
             await tx2.wait();
 
             await expect(
@@ -322,14 +316,10 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, contributor, campaignCreator } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("100"));
+            const tx2 = await contribute(crowdFundEasyContract, contributor);
             await tx2.wait();
 
             await time.increase(100);
@@ -345,15 +335,11 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, contributor, campaignCreator } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
             const createCampaignTimestamp = await time.latest();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("100"));
+            const tx2 = await contribute(crowdFundEasyContract, contributor);
             await tx2.wait();
 
             await expect(crowdFundEasyContract.connect(campaignCreator).withdrawFunds(1))
@@ -368,14 +354,15 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, contributor, campaignCreator } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("1"));
+            const tx2 = await contribute(
+                crowdFundEasyContract,
+                contributor,
+                1,
+                ethers.parseEther("1"),
+            );
             await tx2.wait();
 
             await time.increase(100);
@@ -391,14 +378,10 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, contributor, campaignCreator } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("100"));
+            const tx2 = await contribute(crowdFundEasyContract, contributor);
             await tx2.wait();
 
             await time.increase(100);
@@ -414,15 +397,11 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, myTokenContract, contributor, campaignCreator } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
             const createCampaignTimestamp = await time.latest();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("100"));
+            const tx2 = await contribute(crowdFundEasyContract, contributor);
             await tx2.wait();
 
             await time.increase(100);
@@ -430,7 +409,7 @@ describe("CrowdFundEasy", async function () {
                 await crowdFundEasyContract.connect(campaignCreator).withdrawFunds(1),
             ).to.changeTokenBalances(
                 myTokenContract,
-                [crowdFundEasyContract, contributor],
+                [crowdFundEasyContract, campaignCreator],
                 [-ethers.parseEther("100"), ethers.parseEther("100")],
             );
 
@@ -461,15 +440,11 @@ describe("CrowdFundEasy", async function () {
         it("Should revert if campaign is not ended", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor } =
                 await loadCrowdFundEasyFixture();
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
             const createCampaignTimestamp = await time.latest();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("100"));
+            const tx2 = await contribute(crowdFundEasyContract, contributor);
             await tx2.wait();
 
             await expect(crowdFundEasyContract.connect(contributor).refund(1))
@@ -484,14 +459,10 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("100"));
+            const tx2 = await contribute(crowdFundEasyContract, contributor);
             await tx2.wait();
 
             await time.increase(100);
@@ -507,9 +478,7 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
             await time.increase(100);
@@ -522,14 +491,10 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("100"));
+            const tx2 = await contribute(crowdFundEasyContract, contributor);
             await tx2.wait();
 
             await time.increase(100);
@@ -545,14 +510,15 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor, myTokenContract } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("50"));
+            const tx2 = await contribute(
+                crowdFundEasyContract,
+                contributor,
+                1,
+                ethers.parseEther("50"),
+            );
             await tx2.wait();
 
             await time.increase(100);
@@ -590,14 +556,10 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("100"));
+            const tx2 = await contribute(crowdFundEasyContract, contributor);
             await tx2.wait();
 
             await expect(
@@ -609,14 +571,15 @@ describe("CrowdFundEasy", async function () {
             const { crowdFundEasyContract, campaignCreator, contributor } =
                 await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
-            const tx2 = await crowdFundEasyContract
-                .connect(contributor)
-                .contribute(1, ethers.parseEther("50"));
+            const tx2 = await contribute(
+                crowdFundEasyContract,
+                contributor,
+                1,
+                ethers.parseEther("50"),
+            );
             await tx2.wait();
 
             expect(await crowdFundEasyContract.getContribution(1, contributor)).to.equal(
@@ -642,9 +605,7 @@ describe("CrowdFundEasy", async function () {
         it("Should return campaign", async function () {
             const { crowdFundEasyContract, campaignCreator } = await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
 
             expect(await crowdFundEasyContract.getCampaign(1)).to.deep.equal([
@@ -669,9 +630,7 @@ describe("CrowdFundEasy", async function () {
         it("Should return campaigns", async function () {
             const { crowdFundEasyContract, campaignCreator } = await loadCrowdFundEasyFixture();
 
-            const tx = await crowdFundEasyContract
-                .connect(campaignCreator)
-                .createCampaign(ethers.parseEther("100"), 100);
+            const tx = await createCampaign(crowdFundEasyContract, campaignCreator);
             await tx.wait();
             const latestTimestamp = await time.latest();
 

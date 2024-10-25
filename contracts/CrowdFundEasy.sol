@@ -23,10 +23,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.21;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {MyToken} from "./mocks/Mytoken.sol";
-import "hardhat/console.sol";
 
 contract CrowdFundEasy {
     error CrowdFundEasy__ZeroAddress();
@@ -56,7 +53,7 @@ contract CrowdFundEasy {
      * @param isWithdrawn whether the campaign creator has withdrawn the funds
      */
     struct Campaign {
-        uint256 goal; 
+        uint256 goal;
         uint256 timeEnd;
         address creator;
         uint256 contributionsAmount;
@@ -65,7 +62,7 @@ contract CrowdFundEasy {
 
     MyToken immutable i_token;
     Campaign[] s_campaigns;
-    mapping(uint256 campaign => mapping(address contributor => uint256 amount)) s_contributions; 
+    mapping(uint256 campaign => mapping(address contributor => uint256 amount)) s_contributions;
     /**
      * @notice checks that address param is not zero
      * @param _adr ERC20 token address
@@ -149,8 +146,6 @@ contract CrowdFundEasy {
 
         if (s_campaigns.length == 0) {
             s_campaigns.push();
-            s_campaigns.push(campaign);
-            return;
         }
 
         s_campaigns.push(campaign);
@@ -210,9 +205,9 @@ contract CrowdFundEasy {
                 campaign.contributionsAmount
             );
 
-        require(i_token.transfer(msg.sender, campaign.contributionsAmount));
-
         s_campaigns[_id].isWithdrawn = true;
+
+        require(i_token.transfer(msg.sender, campaign.contributionsAmount));
     }
 
     /**
@@ -240,7 +235,6 @@ contract CrowdFundEasy {
 
         require(i_token.transfer(msg.sender, contributionAmount));
     }
-
 
     /**
      * @dev getTokenAmountInUsd returns the USD value of a given amount of tokens
@@ -286,7 +280,6 @@ contract CrowdFundEasy {
         totalFunds = getTokenAmountInUsd(campaign.contributionsAmount);
     }
 
-    
     /**
      * @notice getToken returns the address of the ERC20 token
      * @return address of the ERC20 token
